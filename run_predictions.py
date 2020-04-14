@@ -3,8 +3,9 @@ import numpy as np
 import json
 from PIL import Image
 from pathlib import Path
+import time
 
-def detect_red_light(I):
+def detect_red_light(I, number, comp):
     '''
     This function takes a numpy array <I> and returns a list <bounding_boxes>.
     The list <bounding_boxes> should have one element for each red light in the
@@ -25,14 +26,12 @@ def detect_red_light(I):
     '''
     BEGIN YOUR CODE
     '''
-    # set the path to the downloaded data:
-    data_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLightBasis'
-    comp = Image.open(os.path.join(data_path,'basisimg.jpg'))
-    comp = np.asarray(comp)
+    tic = time.perf_counter()
+    min_frame = 8
+    max_frame = 23
+    thresh = 0.91
+    y_thresh = 0.55
 
-    min_frame = 5
-    max_frame = 30
-    thresh = 0.9
     I_x = np.shape(I)[1]                # image pixel width
     I_y = np.shape(I)[0]                # image pixel height
     #I = I / np.linalg.norm(I)           # normalize the image
@@ -40,11 +39,11 @@ def detect_red_light(I):
     comp_x = np.shape(comp)[1]           # comparison image size
     comp_y = np.shape(comp)[0]
     used_boxes = np.zeros((I_y,I_x))
-    print("new image")
-    for i in range(max_frame,min_frame-1,-3):
+    print("image "+str(number))
+    for i in range(max_frame,min_frame-1,-2):
         print("frame size: " + str(i))
-        for j in range(0,I_x - i,3):
-            for k in range(0,I_y - i,3):
+        for j in range(0,I_x - i,2):
+            for k in range(0,I_y - i - (int(I_y * y_thresh)),2):
                 test_box = I[k:(k+i),j:(j+i)]     #single out the box to test
                 test_box = [[test_box[int(i * r / comp_y)][int(i * c / comp_x)] for c in range(comp_x)] for r in range(comp_y)]
                 test_box = np.asarray(test_box)
@@ -55,7 +54,8 @@ def detect_red_light(I):
                     bounding_boxes.append([k,j,k+i,j+i])
                     used_boxes[k:(k+i),j:(j+i)] = corr
                     print('box')
-
+    toc = time.perf_counter()
+    print("time: "+str(toc-tic))
 
     '''
     As an example, here's code that generates between 1 and 5 random boxes
@@ -85,6 +85,26 @@ def detect_red_light(I):
         assert len(bounding_boxes[i]) == 4
 
     return bounding_boxes
+samp_size = 7
+
+# set the path to the downloaded data:
+comp_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLightBasis'
+# get sorted list of files:
+file_names = sorted(os.listdir(comp_path))
+# remove any non-JPEG files:
+file_names = [f for f in file_names if '.jpg' in f]
+comp = np.zeros((len(file_names),samp_size,samp_size,3))
+for i in range(len(file_names)):
+    # read image using PIL:
+    samp = Image.open(os.path.join(comp_path,file_names[i]))
+    samp = np.asarray(samp)
+    size = np.shape(samp)[0]
+    samp = [[samp[int(size * r / samp_size)][int(size * c / samp_size)] for c in range(samp_size)] for r in range(samp_size)]
+    # convert to numpy array:
+    comp[i] = np.asarray(samp)
+
+comp = np.average(comp,0)
+
 
 # set the path to the downloaded data:
 data_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLights2011_Medium'
@@ -108,8 +128,8 @@ for i in range(len(file_names)):
     # convert to numpy array:
     I = np.asarray(I)
 
-    preds[file_names[i]] = detect_red_light(I)
+    preds[file_names[i]] = detect_red_light(I, i, comp)
 
-# save preds (overwrites any previous predictions!)
-with open(os.path.join(preds_path,'preds.json'),'w') as f:
-    json.dump(preds,f)
+    # save preds (overwrites any previous predictions!)
+    with open(os.path.join(preds_path,'preds.json'),'w') as f:
+        json.dump(preds,f)
