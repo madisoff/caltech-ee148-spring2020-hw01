@@ -4,6 +4,21 @@ import json
 from PIL import Image
 from pathlib import Path
 
+def isRed(rgb):
+    red = int(rgb[0])
+    blue = int(rgb[1])
+    green = int(rgb[2])
+    if (red > 245) and (green > 100) and (blue > 100):
+        return True
+    elif (red > 200) and (red - blue > 95):
+        return True
+    elif (red - blue > 75) and (red > 140):
+        if (green > 40) and (green < 120):
+            if (blue > 20) and (blue < 90):
+                return True
+    else:
+        return False
+
 def detect_red_light(I):
     '''
     This function takes a numpy array <I> and returns a list <bounding_boxes>.
@@ -25,12 +40,29 @@ def detect_red_light(I):
     '''
     BEGIN YOUR CODE
     '''
+    min_frame = 3
+    max_frame = 10
+    I_x = np.shape(I)[0]
+    I_y = np.shape(I)[1]
+    red_arr = np.zeros((I_x, I_y))
+
+    for i in range(I_x):
+        for j in range(I_y):
+            red_arr[i,j] = isRed(I[i,j])
+
+    for k in range(max_frame, min_frame - 1, -1):
+        buff = int(((np.sqrt(2) - 1) / 2) * k)
+        for i in range(buff, I_x - k - buff):
+            for j in range(buff, I_y - k - buff):
+                if np.all(red_arr[i:i + k,j:j + k]):
+                    red_arr[i:i + k,j:j + k] = False
+                    bounding_boxes.append([i - buff,j - buff,i +k + buff,j + k + buff])
 
     '''
     As an example, here's code that generates between 1 and 5 random boxes
     of fixed size and returns the results in the proper format.
     '''
-
+    '''
     box_height = 8
     box_width = 6
 
@@ -45,7 +77,7 @@ def detect_red_light(I):
         br_col = tl_col + box_width
 
         bounding_boxes.append([tl_row,tl_col,br_row,br_col])
-
+    '''
     '''
     END YOUR CODE
     '''
@@ -56,7 +88,7 @@ def detect_red_light(I):
     return bounding_boxes
 
 # set the path to the downloaded data:
-data_path = Path(Users/madle/Dropbox/ee148/RedLights2011_Medium)
+data_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLights2011_Medium'
 
 # set a path for saving predictions:
 preds_path = '../data/hw01_preds'
@@ -82,3 +114,13 @@ for i in range(len(file_names)):
 # save preds (overwrites any previous predictions!)
 with open(os.path.join(preds_path,'preds.json'),'w') as f:
     json.dump(preds,f)
+
+def isBlack(rgb):
+    red = rgb[0]
+    blue = rgb[1]
+    green = rgb[2]
+    if (red < 200) and (green < 200) and (blue < 200):
+        if (abs(red - blue) < 30) and (abs(red - green) < 30) and (abs(blue - green) < 30):
+            return true
+    else:
+        return false
