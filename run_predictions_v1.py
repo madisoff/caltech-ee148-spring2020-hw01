@@ -4,6 +4,21 @@ import json
 from PIL import Image
 from pathlib import Path
 
+def isRed(rgb):
+    red = int(rgb[0])
+    blue = int(rgb[1])
+    green = int(rgb[2])
+    if (red > 245) and (green > 100) and (blue > 100):
+        return True
+    elif (red > 200) and (red - blue > 95):
+        return True
+    elif (red - blue > 75) and (red > 140):
+        if (green > 40) and (green < 120):
+            if (blue > 20) and (blue < 90):
+                return True
+    else:
+        return False
+
 def detect_red_light(I):
     '''
     This function takes a numpy array <I> and returns a list <bounding_boxes>.
@@ -25,37 +40,23 @@ def detect_red_light(I):
     '''
     BEGIN YOUR CODE
     '''
-    # set the path to the downloaded data:
-    data_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLightBasis'
-    comp = Image.open(os.path.join(data_path,'basisimg.jpg'))
-    comp = np.asarray(comp)
+    min_frame = 3
+    max_frame = 10
+    I_x = np.shape(I)[0]
+    I_y = np.shape(I)[1]
+    red_arr = np.zeros((I_x, I_y))
 
-    min_frame = 5
-    max_frame = 30
-    thresh = 0.9
-    I_x = np.shape(I)[1]                # image pixel width
-    I_y = np.shape(I)[0]                # image pixel height
-    #I = I / np.linalg.norm(I)           # normalize the image
+    for i in range(I_x):
+        for j in range(I_y):
+            red_arr[i,j] = isRed(I[i,j])
 
-    comp_x = np.shape(comp)[1]           # comparison image size
-    comp_y = np.shape(comp)[0]
-    used_boxes = np.zeros((I_y,I_x))
-    print("new image")
-    for i in range(max_frame,min_frame-1,-3):
-        print("frame size: " + str(i))
-        for j in range(0,I_x - i,3):
-            for k in range(0,I_y - i,3):
-                test_box = I[k:(k+i),j:(j+i)]     #single out the box to test
-                test_box = [[test_box[int(i * r / comp_y)][int(i * c / comp_x)] for c in range(comp_x)] for r in range(comp_y)]
-                test_box = np.asarray(test_box)
-                test_box_1d = test_box.flatten()
-                comp_1d = comp.flatten()
-                corr = np.inner(test_box_1d/np.linalg.norm(test_box_1d),comp_1d/np.linalg.norm(comp_1d))
-                if (corr > thresh) and (corr > used_boxes[k,j]):
-                    bounding_boxes.append([k,j,k+i,j+i])
-                    used_boxes[k:(k+i),j:(j+i)] = corr
-                    print('box')
-
+    for k in range(max_frame, min_frame - 1, -1):
+        buff = int(((np.sqrt(2) - 1) / 2) * k)
+        for i in range(buff, I_x - k - buff):
+            for j in range(buff, I_y - k - buff):
+                if np.all(red_arr[i:i + k,j:j + k]):
+                    red_arr[i:i + k,j:j + k] = False
+                    bounding_boxes.append([i - buff,j - buff,i +k + buff,j + k + buff])
 
     '''
     As an example, here's code that generates between 1 and 5 random boxes
@@ -113,3 +114,13 @@ for i in range(len(file_names)):
 # save preds (overwrites any previous predictions!)
 with open(os.path.join(preds_path,'preds.json'),'w') as f:
     json.dump(preds,f)
+
+def isBlack(rgb):
+    red = rgb[0]
+    blue = rgb[1]
+    green = rgb[2]
+    if (red < 200) and (green < 200) and (blue < 200):
+        if (abs(red - blue) < 30) and (abs(red - green) < 30) and (abs(blue - green) < 30):
+            return true
+    else:
+        return false

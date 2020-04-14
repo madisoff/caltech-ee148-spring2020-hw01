@@ -16,16 +16,15 @@ file_names = [f for f in file_names if '.jpg' in f]
 # save preds (overwrites any previous predictions!)
 with open(os.path.join(preds_path,'preds.json'),'r') as f:
     boxes = json.load(f)
-
+print(file_names)
 for i in range(len(file_names)):
     coords = boxes[file_names[i]]
+    I = Image.open(os.path.join(data_path,file_names[i]))
     for j in range(len(coords)):
-        # read image using PIL:
-        I = Image.open(os.path.join(data_path,file_names[i]))
         draw = ImageDraw.Draw(I)
         x0 = coords[j][1]
         y0 = coords[j][0]
         x1 = coords[j][3]
         y1 = coords[j][2]
         draw.rectangle([x0,y0,x1,y1],outline="green")
-        I.save(os.path.join(preds_path,file_names[i]))
+    I.save(os.path.join(preds_path,file_names[i]))
