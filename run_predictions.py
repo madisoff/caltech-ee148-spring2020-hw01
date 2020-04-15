@@ -26,7 +26,6 @@ def detect_red_light(I, number, comp):
     '''
     BEGIN YOUR CODE
     '''
-    tic = time.perf_counter()
     min_frame = 8
     max_frame = 23
     thresh = 0.91
@@ -39,9 +38,7 @@ def detect_red_light(I, number, comp):
     comp_x = np.shape(comp)[1]           # comparison image size
     comp_y = np.shape(comp)[0]
     used_boxes = np.zeros((I_y,I_x))
-    print("image "+str(number))
     for i in range(max_frame,min_frame-1,-2):
-        print("frame size: " + str(i))
         for j in range(0,I_x - i,2):
             for k in range(0,I_y - i - (int(I_y * y_thresh)),2):
                 test_box = I[k:(k+i),j:(j+i)]     #single out the box to test
@@ -53,9 +50,6 @@ def detect_red_light(I, number, comp):
                 if (corr > thresh) and (corr > used_boxes[k,j]):
                     bounding_boxes.append([k,j,k+i,j+i])
                     used_boxes[k:(k+i),j:(j+i)] = corr
-                    print('box')
-    toc = time.perf_counter()
-    print("time: "+str(toc-tic))
 
     '''
     As an example, here's code that generates between 1 and 5 random boxes

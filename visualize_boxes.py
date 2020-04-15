@@ -4,7 +4,6 @@ from PIL import Image, ImageDraw
 # set the path to the downloaded data:
 data_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLights2011_Medium'
 
-# set a path for saving predictions:
 preds_path = '../data/hw01_preds'
 os.makedirs(preds_path,exist_ok=True) # create directory if needed
 
@@ -13,10 +12,12 @@ file_names = sorted(os.listdir(data_path))
 
 # remove any non-JPEG files:
 file_names = [f for f in file_names if '.jpg' in f]
-# save preds (overwrites any previous predictions!)
+
+# load bounding boxes from json file
 with open(os.path.join(preds_path,'preds.json'),'r') as f:
     boxes = json.load(f)
-print(file_names)
+
+# draw a box on each image corresponding to the bounding_boxes coordinates
 for i in range(len(file_names)):
     coords = boxes[file_names[i]]
     I = Image.open(os.path.join(data_path,file_names[i]))
