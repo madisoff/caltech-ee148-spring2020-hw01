@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path
 import time
 
-def detect_red_light(I, number, comp):
+def detect_red_light(I, comp):
     '''
     This function takes a numpy array <I> and returns a list <bounding_boxes>.
     The list <bounding_boxes> should have one element for each red light in the
@@ -26,27 +26,38 @@ def detect_red_light(I, number, comp):
     '''
     BEGIN YOUR CODE
     '''
-    min_frame = 8
-    max_frame = 23
-    thresh = 0.91
-    y_thresh = 0.55
+    # Image search paramters
+    min_frame = 8                       # smallest bounding_box size
+    max_frame = 23                      # largest bounding_box size
+    thresh = 0.91                       # correlation threshold
+    y_thresh = 0.55                     # fraction of the rows to search in
 
     I_x = np.shape(I)[1]                # image pixel width
     I_y = np.shape(I)[0]                # image pixel height
-    #I = I / np.linalg.norm(I)           # normalize the image
 
-    comp_x = np.shape(comp)[1]           # comparison image size
+    comp_x = np.shape(comp)[1]          # comparison image sizes
     comp_y = np.shape(comp)[0]
-    used_boxes = np.zeros((I_y,I_x))
+    used_boxes = np.zeros((I_y,I_x))    # array for storing/updating correlations
+
+    # Check boxes of dimension i with upper left corner at row k and column j
     for i in range(max_frame,min_frame-1,-2):
         for j in range(0,I_x - i,2):
             for k in range(0,I_y - i - (int(I_y * y_thresh)),2):
-                test_box = I[k:(k+i),j:(j+i)]     #single out the box to test
+                # Single out the part of the image to test
+                test_box = I[k:(k+i),j:(j+i)]
+                # Resize it to match the dimension of the comparison image
                 test_box = [[test_box[int(i * r / comp_y)][int(i * c / comp_x)] for c in range(comp_x)] for r in range(comp_y)]
                 test_box = np.asarray(test_box)
+
+                # Turn the test box and comparison image into 1D arrays
                 test_box_1d = test_box.flatten()
                 comp_1d = comp.flatten()
+
+                # Compute the correlation
                 corr = np.inner(test_box_1d/np.linalg.norm(test_box_1d),comp_1d/np.linalg.norm(comp_1d))
+
+                # Add the box if the new correlation exceeds the threshold
+                # as well as any previous correlation at the coordinate.
                 if (corr > thresh) and (corr > used_boxes[k,j]):
                     bounding_boxes.append([k,j,k+i,j+i])
                     used_boxes[k:(k+i),j:(j+i)] = corr
@@ -79,15 +90,19 @@ def detect_red_light(I, number, comp):
         assert len(bounding_boxes[i]) == 4
 
     return bounding_boxes
+
+# Size of the comparison image to use (smaller => faster)
 samp_size = 7
 
-# set the path to the downloaded data:
+# set the path to the basis data:
 comp_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLightBasis'
 # get sorted list of files:
 file_names = sorted(os.listdir(comp_path))
 # remove any non-JPEG files:
 file_names = [f for f in file_names if '.jpg' in f]
 comp = np.zeros((len(file_names),samp_size,samp_size,3))
+
+# Open and resize all the basis images
 for i in range(len(file_names)):
     # read image using PIL:
     samp = Image.open(os.path.join(comp_path,file_names[i]))
@@ -97,8 +112,8 @@ for i in range(len(file_names)):
     # convert to numpy array:
     comp[i] = np.asarray(samp)
 
+# Compute the average of all the basis images.
 comp = np.average(comp,0)
-
 
 # set the path to the downloaded data:
 data_path = 'C:\\Users\\madle\\Dropbox\\ee148\\RedLights2011_Medium'
@@ -122,7 +137,7 @@ for i in range(len(file_names)):
     # convert to numpy array:
     I = np.asarray(I)
 
-    preds[file_names[i]] = detect_red_light(I, i, comp)
+    preds[file_names[i]] = detect_red_light(I, comp)
 
     # save preds (overwrites any previous predictions!)
     with open(os.path.join(preds_path,'preds.json'),'w') as f:
